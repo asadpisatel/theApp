@@ -3,15 +3,14 @@ const cors = require("cors");
 const path = require("path");
 const { connection } = require("./db");
 const bcrypt = require("bcrypt");
+const port = process.env.PORT || 5000;
+const saltRounds = 10;
 
 const app = express();
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use(cors());
 app.use(express.json());
-
-const port = 5000;
-const saltRounds = 10;
 
 const checkUserStatus = (req, res, next) => {
   const { email } = req.headers;
@@ -39,11 +38,17 @@ const checkUserStatus = (req, res, next) => {
   });
 };
 
+const routesRequiringStatusCheck = [
+  "/users",
+  "/users/block",
+  "/users/unblock",
+  "/users/delete",
+];
 app.use((req, res, next) => {
-  if (req.path === "/register" || req.path === "/login") {
-    return next();
+  if (routesRequiringStatusCheck.includes(req.path)) {
+    return checkUserStatus(req, res, next);
   }
-  checkUserStatus(req, res, next);
+  next();
 });
 
 app.post("/register", async (req, res) => {
